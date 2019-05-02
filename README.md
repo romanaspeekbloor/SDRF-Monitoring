@@ -28,7 +28,7 @@ Things that went wrong
 We could not actually see the airplanes landing at London city airport on the map.
 Installing virtual radar on Linux.
 
-Pluto
+Adalm-Pluto 
 
 Expanding the RF range
 
