@@ -18,7 +18,7 @@ RTL Power
 
 Using the software RTL power, we generated a heatmap that showed the energy used for that frequency. RTL Power is based in the Linux command line and outputs a .csv file which can then be transformed in to the waterfall 
 
-Listening to plains and mapping the voices to the planes 
+Listening to aeroplanes and mapping the pilot voices to the planes 
 Played around with virtual radar server and added filters like military aircraft and saw some on the map.
 Listening in to London city airport control tower and tried to link the voices to the plains but we could not see the planes on the map as there was a building in the way so we uses flightradar24
 Install virtual radar along with RTL 1090 to receive ads-b (plane location data)
