@@ -29,8 +29,13 @@ const Heatmap = () => {
   const [samples, setSamples] = useState([]);
   const [d3data, setd3data] = useState([]);
   const [decoding, setDecoding] = useState(false);
+  const [yDomain, setYDomain] = useState([]);
 
-  const [D3Data, setD3Data] = useState({ samples: [], visData: [] });
+  const [D3Data, setD3Data] = useState({
+    yDomain: [],
+    samples: [],
+    visData: []
+  });
 
   // Testing
   const [xScale, setX] = useState(null);
@@ -65,7 +70,7 @@ const Heatmap = () => {
   };
 
   // FileReader 'onload' event
-  reader.onload = ((s, d3) => {
+  reader.onload = ((s, d3, y) => {
     return (e) => {
       const data = JSON.parse(e.target.result);
     
@@ -84,16 +89,23 @@ const Heatmap = () => {
         let smp = [...D3Data.samples];
         smp.unshift(newLine.samples)
         smp.pop();
+
+        const removed = y.splice(y.length - 1, y.length); 
+        console.log('removed: ', removed);
+
+        console.log('domain ->> ', [newLine.d3data[0].createdAt, ...y]);
+        //setYDomain([newLine.d3data[0].createdAt, ...yDomain.splice(1, yDomain.length)]);
         setD3Data({
           samples: smp,
-          visData: tmpArr
+          visData: tmpArr,
+          yDomain: [newLine.d3data[0].createdAt, ...y]
         });
 //        setSamples(smp);
 //        setD3Data(tmpArr);
         console.log('complete')
       }
     }
-  })(D3Data.samples, D3Data.visData);
+  })(D3Data.samples, D3Data.visData, D3Data.yDomain);
 
   wsClient.onmessage = (msg) => handleMessage(msg);
   //Prepare d3
@@ -121,6 +133,12 @@ const Heatmap = () => {
         .filter((v, i, a) => a.indexOf(v) === i)[0]))
       */
       .padding(0.01);
+    
+    setD3Data({ 
+      samples: data,
+      visData: d3VisData,
+      yDomain: data.map((el) => el.map((item) => item.createdAt).filter((v, i, a) => a.indexOf(v) === i)[0])
+    });
 
     svg.append('g')
       .attr('transform', 'translate(0,' + height + ')')
@@ -219,17 +237,14 @@ const Heatmap = () => {
     }
   };
 
-  console.log('decoding: ', decoding, '\nReader State: ', reader.readyState, '\nD3 Data: ', D3Data);
-
   if (D3Data.samples.length > 0 && !decoding && xScale && yScale && reader.readyState !== 1) {
     console.log(`rendering data = [${printN}]`);
 
     svg = d3.select('svg');
 
-    console.log('D3Data: ', D3Data);
     // Y d3 scale
-    yScale.domain(D3Data.samples.map((el) => el.map((item) => item.createdAt)
-        .filter((v, i, a) => a.indexOf(v) === i)[0]))
+    yScale.domain(D3Data.yDomain); //D3Data.samples.map((el) => el.map((item) => item.createdAt)
+        //.filter((v, i, a) => a.indexOf(v) === i)[0]))
 
     let rects = svg.select('g').selectAll('rect')
       .remove()

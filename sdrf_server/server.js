@@ -70,7 +70,7 @@ app.use(cors());
 
 // root get 
 app.get('/', (req, res) => {
-  Freqs.find({}).sort('-createdAd').limit(50).exec((err, data) => {
+  Freqs.find({}).sort('-createdAt').limit(20).exec((err, data) => {
     if (err) return res.send(err);
     // TODO should pick up a range from database with the range properties
     // such as range, low hz, high hz for visualizing it
