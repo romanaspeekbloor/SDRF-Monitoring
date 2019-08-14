@@ -12,6 +12,8 @@ const onConnection = () => {
 wsClient.onopen = () => onConnection(); 
 wsClient.onclose = (e) => console.log('closing ws connection... ', e);
 
+let printN = 0;
+
 // D3 stuff 
 const margin = {top: 100, right: 50, bottom: 100, left: 50};
 const width = 9450 - margin.left - margin.right;
@@ -20,29 +22,29 @@ const height = 1250 - margin.top - margin.bottom;
 const colorScale = d3.scaleLinear()
   .range(['blue', 'yellow', 'red'])
   .domain([-127, 0, 127]);
+let svg;
 
 const Heatmap = () => {
   // TODO merge/review containers...
   const [samples, setSamples] = useState([]);
-  const [d3data, setD3Data] = useState([]);
+  const [d3data, setd3data] = useState([]);
   const [decoding, setDecoding] = useState(false);
+
+  const [D3Data, setD3Data] = useState({ samples: [], visData: [] });
 
   // Testing
   const [xScale, setX] = useState(null);
   const [yScale, setY] = useState(null);
 
-  const svg = d3.select('.chart')
-    .attr('width', width + margin.left + margin.right)
-    .attr('height', height + margin.top + margin.bottom)
-    .append('g')
-    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+  const setupD3 = (id) => {
+  };
 
   const freqsMapper = (data, hzLow, hzHigh, createdAt) => {
     const step = (hzHigh - hzLow) / data.freqs.length;
-    let hz = hzLow;
+    let hz = parseInt(hzLow, 10);
     const tmpArray = [];
 
-    return data.freqs.map((db) => {
+    const mappedData = data.freqs.map((db) => {
       const tmpObj = {};
       tmpObj.createdAt = createdAt;
       tmpObj.db = db;      
@@ -51,30 +53,57 @@ const Heatmap = () => {
       tmpArray.push(tmpObj);
       return tmpObj;
     });
+
+
+    
+    const dataObj = {
+      samples: mappedData,
+      d3data: tmpArray
+    }
+
+    return dataObj;
   };
 
-  wsClient.onmessage = (msg) => handleMessage(msg);
-
   // FileReader 'onload' event
-  reader.onload = ((s) => {
+  reader.onload = ((s, d3) => {
     return (e) => {
       const data = JSON.parse(e.target.result);
     
       if (data) {
         const { hzLow, hzHigh, createdAt } = data
         const newLine = freqsMapper(data, hzLow, hzHigh, createdAt);
-        let tmpArr = [...s];
-        tmpArr.unshift(newLine);
+        let tmpArr = [...d3];
+        tmpArr.splice(tmpArr.length - 513, tmpArr.length);
+        tmpArr = [...newLine.d3data, ...tmpArr];
+
+        /*
+        tmpArr.unshift(newLine.samples);
         tmpArr.pop();
-        setSamples(tmpArr);
+        */
+        /* TRIGGER UPDATE */
+        let smp = [...D3Data.samples];
+        smp.unshift(newLine.samples)
+        smp.pop();
+        setD3Data({
+          samples: smp,
+          visData: tmpArr
+        });
+//        setSamples(smp);
+//        setD3Data(tmpArr);
         console.log('complete')
       }
     }
-  })(samples)
+  })(D3Data.samples, D3Data.visData);
 
-  //Prepary d3
-  const prepareD3 = (data) => {
-    console.log('data: ', data)
+  wsClient.onmessage = (msg) => handleMessage(msg);
+  //Prepare d3
+  const prepareD3 = (data, d3VisData) => {
+    //d3.select('.chart').selectAll('svg').remove();
+    svg = d3.select('.chart')
+      .attr('width', width + margin.left + margin.right)
+      .attr('height', height + margin.top + margin.bottom)
+      .append('g')
+      .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
     // X d3 scale
     const x = d3.scaleBand()
@@ -87,8 +116,10 @@ const Heatmap = () => {
     // Y d3 scale
     const y = d3.scaleBand()
       .range([ height, 0 ])
+      /*
       .domain(data.map((el) => el.map((item) => item.createdAt)
         .filter((v, i, a) => a.indexOf(v) === i)[0]))
+      */
       .padding(0.01);
 
     svg.append('g')
@@ -100,8 +131,24 @@ const Heatmap = () => {
         .call(d3.axisLeft(y))
         .attr('class','yAxis');
 
-      setX(() => x);
-      setY(() => y);
+    /*
+    svg.selectAll()
+      .data(d3VisData)
+      .enter()
+      .append("rect")
+      .attr("x", function(d) {
+        return x(d.hz)
+      })
+      .attr("y", function(d) {
+        return y(d.createdAt)
+      })
+      .attr("width", x.bandwidth() )
+      .attr("height", y.bandwidth() )
+      .style("fill", function(d) { return colorScale(d.db)} )
+    */
+
+    setX(() => x);
+    setY(() => y);
   };
 
   // Pull data from the server and store it in the state
@@ -131,12 +178,19 @@ const Heatmap = () => {
     });
 
     // update state
+    setD3Data({
+      samples: mappedData,
+      visData: dataVis
+    });
+    /*
     setD3Data([...dataVis])
     setSamples([...mappedData]);
-    prepareD3(mappedData);
+    */
+    prepareD3(mappedData, dataVis);
   
     await new Promise((r) => setTimeout(r, 3000));
 
+    // TODO remove when done testing...
     return new Promise((resolve) => {
       if (mappedData) return resolve(mappedData);
       resolve('mappedData -> undefined')
@@ -156,74 +210,49 @@ const Heatmap = () => {
 
   // websocket message handler
   const handleMessage = (msg) => {
-    console.log('handleMSG decoding -> ', decoding);
-    console.log('reader state: ', reader.readyState)
-
-    if (!decoding) {
+    console.log('READER STATE: ', reader.readyState);
+    if (reader.readyState !== 1) {
       console.log('decoding started')
       reader.readAsText(msg.data);
-    } else if (reader.readyState === 2) {
+    } else if (reader.readyState === 2 || reader.readyState === 0) {
       setDecoding(false);
     }
   };
 
-  console.log('re-rendering: ', samples.length)
+  console.log('decoding: ', decoding, '\nReader State: ', reader.readyState, '\nD3 Data: ', D3Data);
 
-  if (samples.length > 0 && xScale && yScale && !decoding) {
-    console.log('should print THE map')
-    console.log('xScale: ', xScale.bandwidth());
-    console.log('svg: ', svg)
-    
-    svg.append('text')
-      .attr('transform','translate(' + (width / 2) + ',' + (height + 40) + ')')
-      .style('text-anchor','middle')
-      .text('HZ');
+  if (D3Data.samples.length > 0 && !decoding && xScale && yScale && reader.readyState !== 1) {
+    console.log(`rendering data = [${printN}]`);
 
-    /*
-    svg.selectAll('g.x text')
-      .attr('transform', 'translate(-10,10) rotate(315)');
-    */
+    svg = d3.select('svg');
 
-//    svg.remove();
+    console.log('D3Data: ', D3Data);
+    // Y d3 scale
+    yScale.domain(D3Data.samples.map((el) => el.map((item) => item.createdAt)
+        .filter((v, i, a) => a.indexOf(v) === i)[0]))
 
-    svg.selectAll()
-      .data(d3data)
-      .enter()
-      .append("rect")
-      .attr("x", function(d) {
-        return xScale(d.hz)
+    let rects = svg.select('g').selectAll('rect')
+      .remove()
+      .exit()
+      .data(D3Data.visData);
+
+    rects.enter()
+      .append('rect')
+      .attr('x', (d) => {
+        return xScale(d.hz);
       })
-      .attr("y", function(d) {
-        return yScale(d.createdAt)
+      .attr('y', (d) => {
+        return yScale(d.createdAt);
       })
       .attr("width", xScale.bandwidth() )
       .attr("height", yScale.bandwidth() )
       .style("fill", function(d) { return colorScale(d.db)} )
-      .exit().remove();
 
-    setDecoding(true);
+    printN++;
   }
   
   const testButtonHandler = () => {
     console.log('re-render()')
-    svg.selectAll()
-      .data(samples.map(s => {
-        s.hz += 10;
-        s.db += 10;
-        return s;
-      }))
-      .exit().remove()
-      .enter().append('rect')
-      .transition()
-      .attr("x", function(d) {
-        return xScale(d.hz / 2)
-      })
-      .attr("y", function(d) {
-        return yScale(d.createdAt)
-      })
-      .attr("width", 20)
-      .attr("height", 10)
-      .style("fill", function(d) { return colorScale(d.db * 2)} )
   };
 
   // Testing... to remove
