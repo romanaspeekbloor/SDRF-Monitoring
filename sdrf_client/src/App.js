@@ -17,7 +17,7 @@ let printN = 0;
 // D3 stuff 
 const margin = {top: 100, right: 50, bottom: 100, left: 50};
 const width = 9450 - margin.left - margin.right;
-const height = 1250 - margin.top - margin.bottom;
+const height = 2250 - margin.top - margin.bottom;
 
 const colorScale = d3.scaleLinear()
   .range(['blue', 'yellow', 'red'])
@@ -81,27 +81,17 @@ const Heatmap = () => {
         tmpArr.splice(tmpArr.length - 513, tmpArr.length);
         tmpArr = [...newLine.d3data, ...tmpArr];
 
-        /*
-        tmpArr.unshift(newLine.samples);
-        tmpArr.pop();
-        */
-        /* TRIGGER UPDATE */
         let smp = [...D3Data.samples];
         smp.unshift(newLine.samples)
         smp.pop();
 
         const removed = y.splice(y.length - 1, y.length); 
-        console.log('removed: ', removed);
 
-        console.log('domain ->> ', [newLine.d3data[0].createdAt, ...y]);
-        //setYDomain([newLine.d3data[0].createdAt, ...yDomain.splice(1, yDomain.length)]);
         setD3Data({
           samples: smp,
           visData: tmpArr,
           yDomain: [newLine.d3data[0].createdAt, ...y]
         });
-//        setSamples(smp);
-//        setD3Data(tmpArr);
         console.log('complete')
       }
     }
@@ -128,10 +118,8 @@ const Heatmap = () => {
     // Y d3 scale
     const y = d3.scaleBand()
       .range([ height, 0 ])
-      /*
       .domain(data.map((el) => el.map((item) => item.createdAt)
         .filter((v, i, a) => a.indexOf(v) === i)[0]))
-      */
       .padding(0.01);
     
     setD3Data({ 
@@ -148,22 +136,6 @@ const Heatmap = () => {
     svg.append("g")
         .call(d3.axisLeft(y))
         .attr('class','yAxis');
-
-    /*
-    svg.selectAll()
-      .data(d3VisData)
-      .enter()
-      .append("rect")
-      .attr("x", function(d) {
-        return x(d.hz)
-      })
-      .attr("y", function(d) {
-        return y(d.createdAt)
-      })
-      .attr("width", x.bandwidth() )
-      .attr("height", y.bandwidth() )
-      .style("fill", function(d) { return colorScale(d.db)} )
-    */
 
     setX(() => x);
     setY(() => y);
@@ -200,10 +172,7 @@ const Heatmap = () => {
       samples: mappedData,
       visData: dataVis
     });
-    /*
-    setD3Data([...dataVis])
-    setSamples([...mappedData]);
-    */
+
     prepareD3(mappedData, dataVis);
   
     await new Promise((r) => setTimeout(r, 3000));
@@ -240,11 +209,10 @@ const Heatmap = () => {
   if (D3Data.samples.length > 0 && !decoding && xScale && yScale && reader.readyState !== 1) {
     console.log(`rendering data = [${printN}]`);
 
-    svg = d3.select('svg');
+    svg = d3.select('.chart');
 
     // Y d3 scale
-    yScale.domain(D3Data.yDomain); //D3Data.samples.map((el) => el.map((item) => item.createdAt)
-        //.filter((v, i, a) => a.indexOf(v) === i)[0]))
+    yScale.domain(D3Data.yDomain);
 
     let rects = svg.select('g').selectAll('rect')
       .remove()
