@@ -1,5 +1,9 @@
+#!/usr/bin/env node
 // Imports/Dependencies
+const stdin = process.openStdin();
+const axios = require('axios');
 
+let doSampling = true;
 
 // Event handlers, executes function on 'data' event
 stdin.on('data', (raw) =>{
@@ -10,20 +14,24 @@ stdin.on('data', (raw) =>{
     headers: {
       'Content-Type': 'application/json'
     }
-  }
+  };
 
   const data = {
     name: 'RX1_BLACK_PI',
-    iq: raw
+    iq: convertedData
   };
 
   // post request using axios to the server
-  axios.post("http://192.168.10.242:3010/rtldata", data, headers)
-  .then(function (response) {
-    console.log('res: ', response.data);
-  })
-  .catch(function (error) {
-    console.log(error);
-  });
+  if (doSampling) {
+    doSampling = false;
+    axios.post("http://192.168.10.242:3010/rtldata", data, headers)
+    .then(function (response) {
+      console.log('res: ', response.data);
+      doSampling = true;
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
+  }
 });
 
