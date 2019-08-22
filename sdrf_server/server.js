@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const bp = require('body-parser')
 const mongoose = require('mongoose');
 const WebSocket = require('ws');
 const express = require('express');
@@ -51,12 +52,14 @@ stdin.on('data', (raw) => {
   };
 
   // Async/Await
+  /*
   Freqs.create(sample, (err) => {
     if (err) return console.log(err);
     console.log('database updated...');
     const sampleBuffer = Buffer.from(JSON.stringify(sample));
     if (socket) socket.send(sampleBuffer);
   });
+  */
 });
 
 // on pipe end: 
@@ -67,6 +70,8 @@ stdin.on('end', () => {
 
 // middleware
 app.use(cors());
+app.use(bp.urlencoded({ extended: false }))
+app.use(bp.json());
 
 // root get 
 app.get('/', (req, res) => {
@@ -77,6 +82,22 @@ app.get('/', (req, res) => {
     res.send(data);
   });
 });
+
+// rtl post handler
+// raspberry HTTP post request handler
+// Responsible for receiving data from raspberry pie client
+// ==========================================================
+app.post('/rtldata', (req, res) => {
+  console.log('receveData',req.body)
+
+  // Response back to the client (raspberrry);
+  res.send({
+    instructions: {
+      actions1: '1',  
+      actions2: '2'  
+    }
+  })
+})
 
 // listen
 app.listen(3010, () => {
