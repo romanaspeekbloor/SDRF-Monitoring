@@ -1,11 +1,30 @@
 #!/usr/bin/env node
 // Imports/Dependencies
 const stdin = process.openStdin();
+const tsClient = require('timesync');
 const axios = require('axios');
+const exec = require('child_process').exec;
+
+const rtlPowerCMD = 'rtl_power -f 153084000:153304000:0.8k -g 35 -1'; 
+
+const ts = tsClient({
+  interval: 10000,
+  peers
+});
 
 let doSampling = true;
 
+ts.on('sync', (state) => {
+  console.log('state: ', state);
+  exec(rtlPowerCMD, (err, stdout, stderr) => {
+    if (err) console.log('ERROR: ', err);
+    console.log('out: ', stdout);
+  });
+});
+
+
 // Event handlers, executes function on 'data' event
+/*
 stdin.on('data', (raw) =>{
   console.log('data',raw.toString())
   const convertedData = raw.toString()
@@ -34,4 +53,5 @@ stdin.on('data', (raw) =>{
     });
   }
 });
+*/
 
