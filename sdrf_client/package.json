@@ -10,8 +10,16 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.19.0",
+    "babel-runtime": "^6.26.0",
     "body-parser": "^1.19.0",
+    "connect": "^3.7.0",
     "cors": "^2.8.5",
-    "timesync": "^1.0.3"
+    "express": "^4.17.1",
+    "finalhandler": "^1.1.2",
+    "import-cdn-js": "0.0.2",
+    "requirejs": "^2.3.6",
+    "serve-static": "^1.14.1",
+    "timesync": "^1.0.3",
+    "window": "^4.2.6"
   }
 }
