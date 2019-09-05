@@ -4,20 +4,11 @@ const stdin = process.openStdin();
 const timesync = require('timesync');
 const axios = require('axios');
 const exec = require('child_process').exec;
-const requirejs = require('requirejs');
+const Peer = require('peerjs-nodejs');
 
-const id = 'asdasd';
-
-require(['./lib/peer-min.js'], function(1, 'asd') {
-  console.log('a: ', a);
-});
-
-
+// Command saved as var...
 const rtlPowerCMD = 'sudo rtl_power -f 100M:100.3M:0.3k -g 35 -1'; 
-//cdn('https://cdnjs.cloudflare.com/ajax/libs/peerjs/0.3.14/peer.min.js', '$')
-//  .then($ => $('body').text('loaded'));
-//
-//
+
 const ts = timesync.create({
   interval: 10000,
   peers: []
@@ -40,6 +31,8 @@ const getSDRData = (cmd) => new Promise((resolve) => {
 ts.on('sync', async (state) => {
   console.log('onSync state: ', state);
   if (state === 'start') {
+    
+    /*
     ts.options.peers = openConnections();
     console.log('syncing with peers: ', ts.options.peers); 
     if (ts.options.peers.length) {
@@ -63,13 +56,21 @@ ts.send = (id, data, timeout) => {
   console.log('send: ', id, data, timeout);
 };
 
-// commenting out,
-//const peer = new Peer('NAME', {key: 'lwjd5qra8257b9', debug: 1}, 'asd');
+// initiating peer 
+const peer = new Peer('NAME', {
+  key: 'lwjd5qra8257b9',
+  debug: 1,
+  host: '192.168.10.242',
+});
+
+console.log('peer -> ', peer);
 //var id = 'asd'
 //var peer = new Peer(id, {key: 'lwjd5qra8257b9', debug: 1});
 
+/*
 peer.on('open', connectToPeers);
 peer.on('connection', setupConnection);
+*/
 
 const openConnections = () => {
     return Object.keys(peer.connections).filter(function (id) {
