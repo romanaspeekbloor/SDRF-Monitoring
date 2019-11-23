@@ -1,37 +1,49 @@
 #!/usr/bin/env node
 // Imports/Dependencies
-const stdin = process.openStdin();
-const axios = require('axios');
+const WebSocket = require('ws');
+const exec = require('child_process').exec;
 
 let doSampling = true;
 
-// Event handlers, executes function on 'data' event
-stdin.on('data', (raw) =>{
-  console.log('data',raw.toString())
-  const convertedData = raw.toString()
-  // http headers
-  const headers = {
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  };
+const ws = new WebSocket('ws://192.168.10.242:9000');
 
-  const data = {
-    name: 'RX1_BLACK_PI',
-    iq: convertedData
-  };
+ws.on('open', () => {
+  ws.send('RX3 connected');
+});
 
-  // post request using axios to the server
-  if (doSampling) {
-    doSampling = false;
-    axios.post("http://192.168.10.242:3010/rtldata", data, headers)
-    .then(function (response) {
-      console.log('res: ', response.data);
-      doSampling = true;
-    })
-    .catch(function (error) {
-      console.log(error);
-    });
-  }
+const sample = (cmd) => new Promise(resolve => {
+  exec(cmd, (err, stdout, stderr) => {
+
+    console.log(err);
+    console.log(stderr);
+    console.log(stdout);
+    resolve(stdout); 
+  });
+});
+
+ws.on('message', (msg) => {
+  const data = JSON.parse(msg);
+  const now = new Date().getTime();
+  const lag = now - data.timestamp;
+  const delay = data.executionTime - lag;
+
+  console.log('res: ', data, '\n lag: ', lag, '\n delay: ', delay);
+
+  setTimeout(async () => {
+    const beforeSampling = new Date().getTime();
+    console.log('sampling time: ', beforeSampling)
+    const cmd = 'rtl_power -f 153084000:153304000:0.8k -g 35';
+    const sdrData = await sample(cmd);
+    const afterSampling = new Date().getTime();
+    console.log('sdr data: ', sdrData);
+    const response = {
+      msg: 'Sampling done!',
+      samplingTime: afterSampling - beforeSampling,
+      timestamp: new Date().getTime()
+    };
+
+    console.log('sampling and messaging server...');
+    ws.send(JSON.stringify(response));
+  }, delay);
 });
 
