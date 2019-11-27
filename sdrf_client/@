@@ -10,8 +10,9 @@ ws.on('open', () => {
 });
 
 const sample = (cmd) => new Promise(resolve => {
-  console.log('scanning...');
   exec(cmd, (err, stdout, stderr) => {
+    console.log(err);
+    console.log(stderr);
     console.log(stdout);
     resolve(stdout); 
   });
@@ -37,7 +38,6 @@ ws.on('message', async (msg) => {
     samplingTime: afterSampling - t, 
     timestamp: new Date().getTime()
   };
-  console.log('complete!');
   ws.send(`RX3 done at: ${t}\n${JSON.stringify(response)}`);
   /*
   const data = JSON.parse(msg);

@@ -6,6 +6,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const stdin = process.openStdin();
+const tsServer = require('timesync/server');
 
 mongoose.connect('mongodb://127.0.0.1:27017/sdrf', { useNewUrlParser: true});
 
@@ -72,6 +73,7 @@ stdin.on('end', () => {
 app.use(cors());
 app.use(bp.urlencoded({ extended: false }))
 app.use(bp.json());
+app.use('/timesync',  tsServer.requestHandler);
 
 // root get 
 app.get('/', (req, res) => {
