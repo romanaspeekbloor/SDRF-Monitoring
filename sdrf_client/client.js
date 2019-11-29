@@ -9,10 +9,11 @@ ws.on('open', () => {
   ws.send('RX3 connected');
 });
 
-const sample = (cmd) => new Promise(resolve => {
+const sample = (cmd) => new Promise(r => {
   console.log('scanning...');
-  exec(cmd, (err, stdout, stderr) => {
-    resolve(stdout); 
+  exec(cmd, (err, out) => {
+    if (err) return r({ err, out });
+    r({ err, out }); 
   });
 });
 
@@ -24,34 +25,23 @@ ws.on('message', async (msg) => {
     t = new Date().getTime();
   }
   const cmd = 'rtl_power -f 153084000:153304000:0.8k -g 35 -i 2 -e -1 2>&1';
-  const sdrData = await sample(cmd);
+  const raw = await sample(cmd);
+  const { err, out } = raw;
   const afterSampling = new Date().getTime();
   console.log(d.execT);
 
-  const response = {
-    name: 'RX[3]',
+  const res = {
+    name: 'RX 3',
     msg: 'Sampling done!',
     startTime: t,
     samplingTime: afterSampling - t, 
+    data: err ? null : out,
+    error: err ? 'error...' : null,
     timestamp: new Date().getTime()
   };
+
+
   console.log('complete!');
-  ws.send(`RX3 done at: ${t}\n${JSON.stringify(response)}`);
-  /*
-  const data = JSON.parse(msg);
-  const now = new Date().getTime();
-  const lag = now - data.timestamp;
-  const delay = data.executionTime - lag;
-
-  console.log('res: ', data, '\n lag: ', lag, '\n delay: ', delay);
-
-  setTimeout(async () => {
-    const beforeSampling = new Date().getTime();
-    console.log('sampling time: ', beforeSampling)
-
-    console.log('sampling and messaging server...');
-    ws.send(JSON.stringify(response));
-  }, delay);
-  */
+  ws.send(JSON.stringify(res));
 });
 
