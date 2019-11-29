@@ -1,34 +1,31 @@
 #!/usr/bin/env node
-const bp = require('body-parser')
 const mongoose = require('mongoose');
 const WebSocket = require('ws');
 const express = require('express');
 const app = express();
 const cors = require('cors');
-const stdin = process.openStdin();
-const tsServer = require('timesync/server');
 
-mongoose.connect('mongodb://127.0.0.1:27017/sdrf', { useNewUrlParser: true});
+// mongoose.connect('mongodb://127.0.0.1:27017/sdrf', { useNewUrlParser: true});
 
-const ws = new WebSocket.Server({ port: 8080 }); 
+const ws = new WebSocket.Server({ port: 9000, clientTracking: true }); 
 let socket;
 
-const freqSchema = new mongoose.Schema({ 
-  date: String,
-  time: String,
-  hzLow: Number,
-  hzHigh: Number,
-  samples: Number,
-  step: Number,
-  freqs: [],
-  createdAt: Number, 
-});
+setInterval(() => {
+  const execT = new Date().getTime() + 2000;
+  const res = {
+    execT,
+  };
+  if (socket) {
+    ws.clients.forEach(c => {
+      c.send(JSON.stringify(res));
+    });
+  }
+}, 5000);
 
-const Freqs = mongoose.model('freqs', freqSchema);
-
-// TODO better way of setting connecting and parsing as var
 ws.on('connection', (s) => {
   socket = s; 
+  // loop(socket);
+  socket.on('message', handleMessage);
 });
 
 // websocket close
@@ -36,44 +33,33 @@ ws.on('close', () => {
   console.log('closing connection');
 });
 
-// std input
-stdin.on('data', (raw) => {
-  const data = raw.toString().split(',');
-  const freqs = data.splice(6);
-  const params = data.splice(0, 6);
-
-  const sample = {
-    date: params[0],
-    time: params[1],
-    hzLow: params[2],
-    hzHigh: params[3],
-    step: params[5],
-    freqs,
-    createdAt: new Date().getTime()
-  };
-
-  // Async/Await
-  /*
-  Freqs.create(sample, (err) => {
-    if (err) return console.log(err);
-    console.log('database updated...');
-    const sampleBuffer = Buffer.from(JSON.stringify(sample));
-    if (socket) socket.send(sampleBuffer);
-  });
-  */
+const log = ({
+  // TODO check if object and more after
+  err: (d) => console.error(`\x1b[31m ERROR: \x1b[0m\n ${d}`),
+  info: (d) => {
+    // mmm
+    return console.log(d);
+  }
 });
 
-// on pipe end: 
-stdin.on('end', () => {
-  console.log('pipe ended');
-  // reader.readAsText();
-});
+const sampler = (raw) => {
+  log.info('sampling');
+  const smpl = raw.match(/\d+([.])\d{2}/g);
+  console.log('length: ', smpl.length, typeof smpl[0]);
+}
 
-// middleware
-app.use(cors());
-app.use(bp.urlencoded({ extended: false }))
-app.use(bp.json());
-app.use('/timesync',  tsServer.requestHandler);
+const handleMessage = (msg) => {
+  // TODO better way..
+  if (msg.length < 100) {
+    return console.log(msg);
+  }
+
+  const d = JSON.parse(msg.replace(/\r?\n|\r|\\n/g, ""));
+  const { error, data, b = 'ads', rx = data, ...rest } = d;
+  console.log(d);
+  if (error) log.err(error);
+  if (rx) sampler(rx);
+};
 
 // root get 
 app.get('/', (req, res) => {
@@ -84,22 +70,6 @@ app.get('/', (req, res) => {
     res.send(data);
   });
 });
-
-// rtl post handler
-// raspberry HTTP post request handler
-// Responsible for receiving data from raspberry pie client
-// ==========================================================
-app.post('/rtldata', (req, res) => {
-  console.log('receveData',req.body)
-
-  // Response back to the client (raspberrry);
-  res.send({
-    instructions: {
-      actions1: '1',  
-      actions2: '2'  
-    }
-  })
-})
 
 // listen
 app.listen(3010, () => {
