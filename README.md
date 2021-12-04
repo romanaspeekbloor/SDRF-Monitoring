@@ -1,5 +1,5 @@
 # SDRF-Monitoring
-Monitoring the RF spectum useing SDR's
+Monitoring the RF spectum using SDR's
 Wideband RF 
 
 
